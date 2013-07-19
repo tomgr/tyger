@@ -1,5 +1,5 @@
-N = 2
-ID = {0..N}
+N = 5
+ID = {0..N-1}
 channel pickup, putdown : ID.ID
 channel sitdown, eat, getup : ID
 
@@ -12,18 +12,12 @@ Philosopher(id) =
 	putdown.id.mplus(id,1) -> putdown.id.id -> getup.id -> Philosopher(id)
 
 Fork :: (ID) -> Proc
-Fork(id) = 
-	[] phil : {id, mplus(id,1)} @ pickup.phil.id -> putdown.phil.id -> Fork(id)
+Fork(i) = pickup.i.i -> putdown.i.i -> Fork(i)
+         []  pickup.((i-1)%N).i -> putdown.((i-1)%N).i -> Fork(i)
 AlphaFork(id) = 
-	{pickup.id.id, putdown.id.id, pickup.mplus(id,1).id, putdown.mplus(id,1).id}
+	{pickup.id.id, putdown.id.id, pickup.((id-1)%N).id, putdown.((id-1)%N).id}
 
 System = 
-	(||| id : {0..N} @ Philosopher(id))
+	(||| id : ID @ Philosopher(id))
 	[| {| putdown, pickup |} |]
-	(|| id : {0..N} @ [AlphaFork(id)] Fork(id))
-
-PhilCanEatSpec :: (ID) -> Proc
-PhilCanEatSpec(n) = eat.n -> PhilCanEatSpec(n)
-
-assert PhilCanEatSpec(0) [F= 
-	System \ {| pickup, putdown, sitdown, getup, eat.1, eat.2 |}
+	(|| id : ID @ [AlphaFork(id)] Fork(id))

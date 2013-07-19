@@ -64,3 +64,5 @@ System_ =
     within
         AlphaParallel_(ReadersWriters_, Guard_(0, 0), alphaReadersWriters_,
                        alphaGuard_)
+
+assert System_ :[deadlock free [F]]
