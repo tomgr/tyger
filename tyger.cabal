@@ -1,0 +1,28 @@
+Name: tyger
+Copyright: (c) 2012 Thomas Gibson-Robinson
+Author: Thomas Gibson-Robinson <thomas.gibsonrobinson@gmail.com>
+Category: Concurrency
+Build-type: Simple
+Cabal-version: >=1.9.2
+Version: 0.3.0
+
+Executable tyger
+    Build-Depends:
+        base >= 4 && < 5,
+        containers >= 0.4, 
+        directory,
+        filepath,
+        mtl >= 2.0, 
+        parsec,
+        pretty >= 1.0,
+        template-haskell
+
+    Main-is: Main.hs
+    
+    GHC-Options: -O3
+    GHC-Prof-Options: -auto-all -prof
+    
+    Hs-Source-Dirs: src
+    
+    Extensions: DoAndIfThenElse
+
