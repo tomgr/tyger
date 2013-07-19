@@ -1,0 +1,15 @@
+include "CSP.csp"
+
+AllEvents = {|test|}
+
+channel test : T
+
+datatype T = A| B| C
+
+P(x) = Prefix(test.x, CSPSTOP)
+
+Alpha(x) = {|test|}
+
+Q = ReplicatedAlphaParallel(<P(x) | x <- T>, <Alpha(x) | x <- T>)
+
+R = ReplicatedExternalChoice(<P(x) | x <- T>)

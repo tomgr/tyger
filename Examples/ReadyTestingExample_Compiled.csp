@@ -1,0 +1,66 @@
+include "ReadyTesting.csp"
+
+UserEvents = {|startWrite_, startRead_, endWrite_, endRead_|}
+
+datatype ProcArgs = Proc_Guard_.Readers_.Writers_| Proc_Reader_|
+                    Proc_Writer_
+
+GetProc(Proc_Guard_.arg_1_.arg_2_) =
+    Guard_UNWRAPPED_(arg_1_, arg_2_)
+GetProc(Proc_Reader_) = Reader_UNWRAPPED_
+GetProc(Proc_Writer_) = Writer_UNWRAPPED_
+
+MaxReaders_ = 1
+
+MaxWriters_ = 1
+
+Readers_ = {0..MaxReaders_}
+
+Writers_ = {0..MaxWriters_}
+
+channel startWrite_, startRead_, endWrite_, endRead_
+
+Guard_UNWRAPPED_(r_, w_) =
+    if w_ == 0 and r_ < MaxReaders_ then
+        TestReady_(Prefix_(startRead_, CallProc(Proc_Guard_.r_ + 1.w_)),
+                   STOPT_, startWrite_)
+    else
+        ExternalChoice_(STOPT_,
+                        if r_ > 0 then Prefix_(endRead_, CallProc(Proc_Guard_.r_ - 1.w_))
+                        else
+                            ExternalChoice_(STOPT_,
+                                            if r_ == 0 and w_ == 0 then
+                                                Prefix_(startWrite_,
+                                                        CallProc(Proc_Guard_.r_.w_ + 1))
+                                            else
+                                                ExternalChoice_(STOPT_,
+                                                                if w_ > 0 then
+                                                                    Prefix_(endWrite_,
+                                                                            CallProc(Proc_Guard_.r_.w_ - 1))
+                                                                else STOPT_)))
+
+Guard_(arg_1_, arg_2_) = WrapThread(Proc_Guard_.arg_1_.arg_2_)
+
+Reader_UNWRAPPED_ =
+    Prefix_(startRead_, Prefix_(endRead_, CallProc(Proc_Reader_)))
+
+Reader_ = WrapThread(Proc_Reader_)
+
+Writer_UNWRAPPED_ =
+    Prefix_(startWrite_, Prefix_(endWrite_, CallProc(Proc_Writer_)))
+
+Writer_ = WrapThread(Proc_Writer_)
+
+ReadersWriters_ =
+    Interleave_(ReplicatedInterleave_(<Reader_ | id_
+                                                 <- seq({1..MaxReaders_})>),
+                ReplicatedInterleave_(<Writer_ | id_ <- seq({1..MaxWriters_})>))
+
+System_ =
+    let
+        alphaGuard_ = {|startWrite_, startRead_, endWrite_, endRead_|}
+        alphaReadersWriters_ =
+            {|startWrite_, startRead_, endWrite_, endRead_|}
+    within
+        AlphaParallel_(ReadersWriters_, Guard_(0, 0), alphaReadersWriters_,
+                       alphaGuard_)

@@ -1,0 +1,11 @@
+channel test : T
+
+datatype T = A | B | C
+
+P(x) = test.x -> CSPSTOP
+
+Alpha(x) = {| test |}
+
+Q = || x : T @ [Alpha(x)] P(x)
+
+R = [] x : T @ P(x)

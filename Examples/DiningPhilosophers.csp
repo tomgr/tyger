@@ -1,0 +1,29 @@
+N = 2
+ID = {0..N}
+channel pickup, putdown : ID.ID
+channel sitdown, eat, getup : ID
+
+mplus(x, y) = (x + y) % N
+
+-- Original process
+Philosopher :: (ID) -> Proc
+Philosopher(id) =
+	sitdown.id -> pickup.id.id -> pickup.id.mplus(id,1) -> eat.id -> 
+	putdown.id.mplus(id,1) -> putdown.id.id -> getup.id -> Philosopher(id)
+
+Fork :: (ID) -> Proc
+Fork(id) = 
+	[] phil : {id, mplus(id,1)} @ pickup.phil.id -> putdown.phil.id -> Fork(id)
+AlphaFork(id) = 
+	{pickup.id.id, putdown.id.id, pickup.mplus(id,1).id, putdown.mplus(id,1).id}
+
+System = 
+	(||| id : {0..N} @ Philosopher(id))
+	[| {| putdown, pickup |} |]
+	(|| id : {0..N} @ [AlphaFork(id)] Fork(id))
+
+PhilCanEatSpec :: (ID) -> Proc
+PhilCanEatSpec(n) = eat.n -> PhilCanEatSpec(n)
+
+assert PhilCanEatSpec(0) [F= 
+	System \ {| pickup, putdown, sitdown, getup, eat.1, eat.2 |}

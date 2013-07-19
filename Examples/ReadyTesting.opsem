@@ -1,0 +1,371 @@
+Channels
+	ready : Sigma
+	notReady : Sigma
+	offer : Sigma
+	notOffer : Sigma
+EndChannels
+
+Operator STOPT
+	Rule
+		-------------------------	a <- Sigma
+		STOPT =notOffer.a=> STOPT
+	EndRule
+EndOperator
+
+Operator PrefixHat(a, P)
+	Rule
+		----------------------
+		PrefixHat(a, P) =a=> P
+	EndRule
+	Rule
+		----------------------------------------
+		PrefixHat(a,P) =offer.a=> PrefixHat(a,P)
+	EndRule
+	Rule
+		------------------------------------------- b <- Sigma, b != a
+		PrefixHat(a,P) =notOffer.b=> PrefixHat(a,P)
+	EndRule
+EndOperator
+
+Operator Prefix(a, P)
+	Syntax Binary "->" 8 AssocRight
+
+	Rule
+		---------------------------		b <- Sigma
+		a -> P =notOffer.b=> a -> P
+	EndRule
+	
+	Rule 
+		---------------------------
+		a -> P =tau=> PrefixHat(a,P)
+	EndRule
+EndOperator
+
+
+Operator InternalChoice(P, Q)
+	Syntax Binary "|~|" 10 AssocLeft
+
+	Rule 
+		----------------
+		P |~| Q =tau=> P
+	EndRule
+	Rule 
+		----------------
+		P |~| Q =tau=> Q
+	EndRule
+EndOperator
+	
+Operator ExternalChoice(P, Q)
+	Syntax Binary "[]" 10 AssocLeft
+	
+	Rule
+		P =a=> P'
+		-------------------		a <- Sigma
+		P [] Q =a=> P'
+	EndRule
+	
+	Rule 
+		Q =a=> Q'
+		--------------			a <- Sigma
+		P [] Q =a=> Q'
+	EndRule
+	
+	Rule
+		P =offer.a=> P'
+		-------------------------		a <- Sigma
+		P [] Q =offer.a=> P' [] Q
+	EndRule
+	Rule
+		P =ready.a=> P'
+		-------------------------		a <- Sigma
+		P [] Q =ready.a=> P' [] Q
+	EndRule
+	Rule
+		P =notReady.a=> P'
+		----------------------------	a <- Sigma
+		P [] Q =notReady.a=> P' [] Q
+	EndRule
+
+	Rule
+		Q =offer.a=> Q'
+		-------------------------		a <- Sigma
+		P [] Q =offer.a=> P [] Q'
+	EndRule
+	Rule
+		Q =ready.a=> Q'
+		-------------------------		a <- Sigma
+		P [] Q =ready.a=> P [] Q'
+	EndRule
+	Rule
+		Q =notReady.a=> Q'
+		----------------------------	a <- Sigma
+		P [] Q =notReady.a=> P [] Q'
+	EndRule
+	
+	Rule
+		P =notOffer.a=> P'
+		Q =notOffer.a=> Q'
+		----------------------------	a <- Sigma
+		P [] Q =notOffer.a=> P' [] Q'
+	EndRule
+		
+	Replicated(P)
+		Syntax Prefix "[] $0 @" 9
+		
+		BaseCase({})
+			STOPT
+		EndBaseCase
+		InductiveCase(Ps)
+			P [] InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+// TODO: associativity
+Operator TestReady(Q, P, a)
+	Syntax Prefix "if ready $3 then $2 else" 12
+	
+	Rule
+		-----------------------------
+		TestReady(Q,P,a) =ready.a=> P
+	EndRule
+	
+	Rule
+		--------------------------------
+		TestReady(Q,P,a) =notReady.a=> Q
+	EndRule
+	
+	Rule
+		-----------------------------------------------		b <- Sigma
+		TestReady(Q,P,a) =notOffer.b=> TestReady(Q,P,a)
+	EndRule
+EndOperator
+
+Operator Interleave(P : InfRec, Q : InfRec)
+	Syntax Binary "|||" 12 AssocNone
+	
+	Rule
+		P =a=> P'
+		---------------------	a <- Sigma
+		P ||| Q =a=> P' ||| Q
+	EndRule
+	Rule
+		Q =a=> Q'
+		---------------------	a <- Sigma
+		P ||| Q =a=> P ||| Q'
+	EndRule
+	Rule
+		P =offer.a=> P'
+		---------------------------	a <- Sigma
+		P ||| Q =offer.a=> P' ||| Q
+	EndRule
+	Rule
+		Q =offer.a=> Q'
+		---------------------------	a <- Sigma
+		P ||| Q =offer.a=> P ||| Q'
+	EndRule
+	Rule
+		P =notOffer.a=> P'
+		Q =notOffer.a=> Q'
+		------------------------------- a <- Sigma
+		P ||| Q =notOffer.a=> P' ||| Q'
+	EndRule
+	
+	Rule
+		P =ready.a=> P'
+		--------------------------- a <- Sigma
+		P ||| Q =ready.a=> P' ||| Q
+	EndRule
+	Rule
+		Q =ready.a=> Q'
+		--------------------------- a <- Sigma
+		P ||| Q =ready.a=> P ||| Q'
+	EndRule
+	Rule
+		P =notReady.a=> P'
+		--------------------------- a <- Sigma
+		P ||| Q =notReady.a=> P' ||| Q
+	EndRule
+	Rule
+		Q =notReady.a=> Q'
+		--------------------------- a <- Sigma
+		P ||| Q =notReady.a=> P ||| Q'
+	EndRule
+	
+	Replicated(P)
+		Syntax Prefix "||| $0 @" 9
+		
+		BaseCase({})
+			STOPT
+		EndBaseCase
+		InductiveCase(Ps)
+			P ||| InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+Operator AlphaParallel(P : InfRec, Q : InfRec, A, B)
+	Syntax Binary "[ $3 || $4 ]" 12 AssocNone
+	
+	Rule
+		P =a=> P'
+		Q =a=> Q'
+		------------------------------		a <- inter(A,B)
+		P [ A || B ] Q =a=> P' [ A || B ] Q'
+	EndRule	
+	Rule
+		P =offer.a=> P'
+		Q =offer.a=> Q'
+		------------------------------		a <- inter(A,B)
+		P [ A || B ] Q =a=> P' [ A || B ] Q'
+	EndRule
+	
+	Rule
+		P =ready.a=> P'
+		Q =offer.a=> Q'
+		------------------------------------		a <- A
+		P [ A || B ] Q =ready.a=> P' [ A || B ] Q'
+	EndRule
+		
+	Rule
+		P =a=> P'
+		------------------------------		a <- diff(A, B)
+		P [ A || B ] Q =a=> P' [ A || B ] Q
+	EndRule
+	Rule
+		P =offer.a=> P'
+		-----------------------------------		a <- diff(A, B)
+		P [ A || B ] Q =offer.a=> P' [ A || B ] Q
+	EndRule
+	Rule
+		P =notOffer.a=> P'
+		--------------------------------------		a <- diff(A, B)
+		P [ A || B ] Q =notOffer.a=> P' [ A || B ] Q
+	EndRule
+	Rule
+		P =ready.b=> P'
+		-----------------------------------		b <- diff(Sigma, B)
+		P [ A || B ] Q =ready.b=> P' [ A || B ] Q
+	EndRule
+	Rule
+		P =notReady.b=> P'
+		--------------------------------------	b <- diff(Sigma, B)
+		P [ A || B ] Q =notReady.b=> P' [ A || B ] Q
+	EndRule
+		
+	Rule
+		Q =a=> Q'
+		------------------------------		a <- diff(B, A)
+		P [ A || B ] Q =a=> P [ A || B ] Q'
+	EndRule
+	Rule
+		Q =offer.a=> Q'
+		-----------------------------------		a <- diff(B, A)
+		P [ A || B ] Q =offer.a=> P [ A || B ] Q'
+	EndRule
+	Rule
+		Q =notOffer.a=> Q'
+		--------------------------------------		a <- diff(B, A)
+		P [ A || B ] Q =notOffer.a=> P [ A || B ] Q'
+	EndRule
+	Rule
+		Q =ready.b=> Q'
+		-----------------------------------		b <- diff(Sigma, A)
+		P [ A || B ] Q =ready.b=> P [ A || B ] Q'
+	EndRule
+	Rule
+		Q =notReady.b=> Q'
+		--------------------------------------	b <- diff(Sigma, A)
+		P [ A || B ] Q =notReady.b=> P [ A || B ] Q'
+	EndRule
+	
+	Rule
+		P =ready.b=> P'
+		Q =offer.b=> Q'
+		------------------------------------------ b <- B
+		P [ A || B ] Q =ready.b=> P' [ A || B ] Q'
+	EndRule
+	Rule
+		P =offer.b=> P'
+		Q =ready.b=> Q'
+		------------------------------------------ b <- A
+		P [ A || B ] Q =ready.b=> P' [ A || B ] Q'
+	EndRule
+	
+	Rule
+		P =notReady.b=> P'
+		Q =notOffer.b=> Q'
+		------------------------------------------ b <- B
+		P [ A || B ] Q =tau=> P' [ A || B ] Q'
+	EndRule
+	Rule
+		P =notOffer.b=> P'
+		Q =notReady.b=> Q'
+		------------------------------------------ b <- A
+		P [ A || B ] Q =tau=> P' [ A || B ] Q'
+	EndRule
+
+	Rule
+		P =notReady.b=> P'
+		Q =offer.b=> Q'
+		------------------------------------------ b <- B
+		P [ A || B ] Q =notReady.b=> P' [ A || B ] Q'
+	EndRule
+	Rule
+		P =offer.b=> P'
+		Q =notReady.b=> Q'
+		------------------------------------------ b <- A
+		P [ A || B ] Q =notReady.b=> P' [ A || B ] Q'
+	EndRule
+
+	Rule
+		------------------------------------------ d <- diff(Sigma, union(A,B))
+		P [ A || B ] Q =notOffer.d=> P [ A || B ] Q
+	EndRule
+EndOperator
+
+Operator Hide(P : InfRec, A)
+	Syntax Binary "\" 14 AssocLeft
+	
+	Rule
+		P =a=> P'
+		-----------------		a <- diff(Sigma, A)
+		P \ A =a=> P' \ A
+	EndRule
+	Rule
+		P =ready.a=> P'
+		-----------------		a <- diff(Sigma, A)
+		P \ A =ready.a=> P' \ A
+	EndRule
+	Rule
+		P =notReady.a=> P'
+		-----------------		a <- diff(Sigma, A)
+		P \ A =notReady.a=> P' \ A
+	EndRule
+	Rule
+		P =notOffer.a=> P'
+		-----------------		a <- diff(Sigma, A)
+		P \ A =notOffer.a=> P' \ A
+	EndRule
+	Rule
+		P =offer.a=> P'
+		-----------------		a <- diff(Sigma, A)
+		P \ A =offer.a=> P' \ A
+	EndRule
+	
+	Rule
+		P =a=> P'
+		-----------------		a <- A
+		P \ A =tau=> P' \ A
+	EndRule
+	Rule
+		P =ready.a=> P'
+		-----------------		a <- A
+		P \ A =tau=> P' \ A
+	EndRule
+	
+	Rule
+		------------------------- b <- A
+		P \ A =notOffer.b=> P \ A
+	EndRule
+EndOperator

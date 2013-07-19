@@ -1,0 +1,32 @@
+MaxReaders = 1
+MaxWriters = 1
+Readers = {0..MaxReaders}
+Writers = {0..MaxWriters}
+
+channel startWrite, startRead, endWrite, endRead
+
+Guard :: (Readers, Writers) -> Proc
+Guard(r, w) =
+	if w == 0 and r < MaxReaders then
+		if ready startWrite then STOPT
+		else startRead -> Guard(r+1,w)
+	else STOPT
+	[] if r > 0 then endRead -> Guard(r-1, w) else STOPT
+	[] if r == 0 and w == 0 then startWrite -> Guard(r, w+1) else STOPT
+	[] if w > 0 then endWrite -> Guard(r, w-1) else STOPT
+
+Reader = startRead -> endRead -> Reader
+Writer = startWrite -> endWrite -> Writer
+
+ReadersWriters = 
+	(||| id : {1..MaxReaders} @ Reader)
+	||| ||| id : {1..MaxWriters} @ Writer
+
+System = 
+	let
+		alphaGuard = 
+			{| startWrite, startRead, endWrite, endRead |}
+		alphaReadersWriters = 
+			{| startWrite, startRead, endWrite, endRead |}
+	within
+		ReadersWriters [ alphaReadersWriters || alphaGuard ] Guard(0,0)

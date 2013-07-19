@@ -1,0 +1,166 @@
+Channels
+	offer : Sigma
+EndChannels
+
+Operator CSPSTOP
+EndOperator
+
+Operator Prefix(a, P)
+	Syntax Binary "->" 8 AssocRight
+
+	Rule
+		-------------------------
+		a -> P =offer.a=> a -> P
+	EndRule
+	Rule 
+		-------------
+		a -> P =a=> P
+	EndRule
+EndOperator
+
+Operator ExternalChoice(P, Q)
+	Syntax Binary "[]" 10 AssocLeft
+	
+	Rule
+		P =a=> P'
+		-------------------		a <- Sigma
+		P [] Q =a=> P'
+	EndRule
+	
+	Rule 
+		Q =a=> Q'
+		--------------			a <- Sigma
+		P [] Q =a=> Q'
+	EndRule
+	
+	Rule
+		P =offer.a=> P'
+		-------------------------		a <- Sigma
+		P [] Q =offer.a=> P' [] Q
+	EndRule
+	Rule
+		Q =offer.a=> Q'
+		-------------------------		a <- Sigma
+		P [] Q =offer.a=> P [] Q'
+	EndRule
+		
+	Replicated(P)
+		Syntax Prefix "[] $0 @" 9
+		
+		BaseCase({})
+			CSPSTOP
+		EndBaseCase
+		InductiveCase(Ps)
+			P [] InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+Operator InternalChoice(P, Q)
+	Syntax Binary "|~|" 10 AssocLeft
+	
+	Rule
+		----------------
+		P |~| Q =tau=> P
+	EndRule
+	
+	Rule 
+		----------------
+		P |~| Q =tau=> Q
+	EndRule
+EndOperator
+
+Operator Hide(P : InfRec, A)
+	Syntax Binary "\" 14 AssocLeft
+	
+	Rule
+		P =a=> P'
+		-----------------		a <- diff(Sigma, A)
+		P \ A =a=> P' \ A
+	EndRule
+	
+	Rule
+		P =a=> P'
+		-----------------		a <- A
+		P \ A =tau=> P' \ A
+	EndRule
+EndOperator
+
+
+Operator Parallel(P : InfRec, Q : InfRec, A)
+	Syntax Binary "[| $3 |]" 12 AssocNone
+	
+	Rule
+		P =a=> P'
+		Q =a=> Q'
+		------------------------------		a <- A
+		P [| A |] Q =a=> P' [| A |] Q'
+	EndRule
+	Rule
+		P =offer.a=> P'
+		Q =offer.a=> Q'
+		------------------------------		a <- A
+		P [| A |] Q =offer.a=> P' [| A |] Q'
+	EndRule	
+	
+	Rule
+		P =a=> P'
+		------------------------------		a <- diff(Sigma, A)
+		P [| A |] Q =a=> P' [| A |] Q
+	EndRule
+	Rule
+		P =offer.a=> P'
+		------------------------------		a <- diff(Sigma, A)
+		P [| A |] Q =offer.a=> P' [| A |] Q
+	EndRule
+	
+	Rule
+		Q =a=> Q'
+		------------------------------		a <- diff(Sigma, A)
+		P [| A |] Q =a=> P [| A |] Q'
+	EndRule
+	Rule
+		Q =offer.a=> Q'
+		------------------------------		a <- diff(Sigma, A)
+		P [| A |] Q =offer.a=> P [| A |] Q'
+	EndRule
+EndOperator
+
+Operator Interleave(P : InfRec, Q : InfRec)
+	Syntax Binary "|||" 12 AssocNone
+	
+	Rule
+		P =a=> P'
+		---------------------- a <- Sigma
+		P ||| Q =a=> P' ||| Q
+	EndRule
+	Rule
+		P =offer.a=> P'
+		---------------------- a <- Sigma
+		P ||| Q =offer.a=> P' ||| Q
+	EndRule
+	
+	Rule
+		Q =a=> Q'
+		--------------------- a <- Sigma
+		P ||| Q =a=> P ||| Q'
+	EndRule
+	Rule
+		Q =offer.a=> Q'
+		--------------------- a <- Sigma
+		P ||| Q =offer.a=> P ||| Q'
+	EndRule
+	
+	Replicated(P)
+		Syntax Prefix "||| $0 @" 9// TODO: binding order
+		
+		BaseCase({})
+			CSPSTOP
+		EndBaseCase
+		InductiveCase(Ps)
+			P ||| InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+	

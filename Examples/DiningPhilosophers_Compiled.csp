@@ -1,0 +1,62 @@
+include "CSP.csp"
+
+UserEvents = {|pickup', putdown', sitdown', eat', getup'|}
+
+datatype ProcArgs = Proc_Philosopher'.ID'| Proc_Fork'.ID'|
+                    Proc_PhilCanEatSpec'.ID'
+
+GetProc(Proc_Philosopher'.arg_1') = Philosopher_UNWRAPPED'(arg_1')
+GetProc(Proc_Fork'.arg_1') = Fork_UNWRAPPED'(arg_1')
+GetProc(Proc_PhilCanEatSpec'.arg_1') =
+    PhilCanEatSpec_UNWRAPPED'(arg_1')
+
+N' = 2
+
+ID' = {0..N'}
+
+channel pickup', putdown' : ID'. ID'
+
+channel sitdown', eat', getup' : ID'
+
+mplus'(x', y') = (x' + y') % N'
+
+Philosopher_UNWRAPPED'(id') =
+    Prefix'(sitdown'.id',
+            Prefix'(pickup'.id'.id',
+                    Prefix'(pickup'.id'.mplus'(id', 1),
+                            Prefix'(eat'.id',
+                                    Prefix'(putdown'.id'.mplus'(id', 1),
+                                            Prefix'(putdown'.id'.id',
+                                                    Prefix'(getup'.id',
+                                                            CallProc(Proc_Philosopher'.id'))))))))
+
+Philosopher'(arg_1') = WrapThread(Proc_Philosopher'.arg_1')
+
+Fork_UNWRAPPED'(id') =
+    ReplicatedExternalChoice'(<Prefix'(pickup'.phil'.id',
+                                       Prefix'(putdown'.phil'.id',
+                                               CallProc(Proc_Fork'.id'))) | phil'
+                                                                            <- seq({id',
+                                                                                    mplus'(id',
+                                                                                           1)})>)
+
+Fork'(arg_1') = WrapThread(Proc_Fork'.arg_1')
+
+AlphaFork'(id') =
+    {pickup'.id'.id', putdown'.id'.id', pickup'.mplus'(id', 1).id',
+     putdown'.mplus'(id', 1).id'}
+
+System' =
+    Parallel'(ReplicatedInterleave'(<Philosopher'(id') | id'
+                                                         <- seq({0..N'})>),
+              ReplicatedAlphaParallel'(<Fork'(id') | id' <- seq({0..N'})>,
+                                       <AlphaFork'(id') | id' <- seq({0..N'})>),
+              {|putdown', pickup'|})
+
+PhilCanEatSpec_UNWRAPPED'(n') =
+    Prefix'(eat'.n', CallProc(Proc_PhilCanEatSpec'.n'))
+
+PhilCanEatSpec'(arg_1') = WrapThread(Proc_PhilCanEatSpec'.arg_1')
+
+assert PhilCanEatSpec'(0) [F= Hide'(System',
+                                    {|pickup', putdown', sitdown', getup', eat'.1, eat'.2|})

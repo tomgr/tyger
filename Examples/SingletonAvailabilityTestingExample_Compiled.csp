@@ -1,0 +1,15 @@
+include "SingletonAvailabilityTesting.csp"
+
+UserEvents = {|a', b'|}
+
+ProcArgs = {}
+
+channel a', b'
+
+P' = ExternalChoice'(Prefix'(a', CSPSTOP'), Prefix'(b', CSPSTOP'))
+
+Q' = InternalChoice'(Prefix'(a', CSPSTOP'), Prefix'(b', CSPSTOP'))
+
+assert P' [T= Q'
+
+assert Q' [T= P'

@@ -1,0 +1,7 @@
+channel a, b
+
+P = a -> CSPSTOP [] b -> CSPSTOP
+Q = a -> CSPSTOP |~| b -> CSPSTOP
+
+assert P [T= Q
+assert Q [T= P

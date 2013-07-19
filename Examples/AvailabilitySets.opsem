@@ -1,0 +1,105 @@
+Channels
+	offer : Set(Sigma)
+EndChannels
+
+Operator CSPSTOP
+	Rule
+		---------------------------
+		CSPSTOP =offer.{}=> CSPSTOP
+	EndRule
+EndOperator
+
+Operator Prefix(a, P)
+	Syntax Binary "->" 8 AssocRight
+
+	Rule
+		-------------------------
+		a -> P =offer.{a}=> a -> P
+	EndRule
+	Rule
+		-------------------------
+		a -> P =offer.{}=> a -> P
+	EndRule
+	Rule 
+		-------------
+		a -> P =a=> P
+	EndRule
+EndOperator
+
+Operator ExternalChoice(P, Q)
+	Syntax Binary "[]" 10 AssocLeft
+	
+	Rule
+		P =a=> P'
+		-------------------		a <- Sigma
+		P [] Q =a=> P'
+	EndRule
+	
+	Rule 
+		Q =a=> Q'
+		--------------			a <- Sigma
+		P [] Q =a=> Q'
+	EndRule
+	
+	Rule
+		P =offer.A=> P'
+		Q =offer.B=> Q'
+		----------------------------------	A <- Set(Sigma), B <- Set(Sigma)
+		P [] Q =offer.union(A,B)=> P' [] Q'
+	EndRule
+		
+	Replicated(P)
+		Syntax Prefix "[] $0 @" 9
+		
+		BaseCase({})
+			CSPSTOP
+		EndBaseCase
+		InductiveCase(Ps)
+			P [] InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+Operator InternalChoice(P, Q)
+	Syntax Binary "|~|" 10 AssocLeft
+	
+	Rule
+		----------------
+		P |~| Q =tau=> P
+	EndRule
+	
+	Rule 
+		----------------
+		P |~| Q =tau=> Q
+	EndRule
+EndOperator
+
+Operator AlphaParallel(P, Q, A, B)
+	Syntax Binary "[ $3 || $4 ]" 12  AssocNone
+	
+	Rule
+		P =offer.X=> P'
+		Q =offer.Y=> Q'
+		------------------------------------------------- 
+			X <- Set(Sigma), Y <- Set(Sigma), X <= A, Y <= B, 
+			inter(X,A) == inter(Y,B)
+		P [ A || B ] Q =offer.union(A,B)=> P' [ A || B ] Q'
+	EndRule
+	
+	Rule
+		P =a=> P'
+		Q =a=> Q'
+		------------------------------------ a <- inter(A,B)
+		P [ A || B ] Q =a=> P' [ A || B ] Q'
+	EndRule
+	Rule
+		P =a=> P'
+		----------------------------------- a <- diff(A,B)
+		P [ A || B ] Q =a=> P' [ A || B ] Q
+	EndRule
+	Rule
+		Q =a=> Q'
+		----------------------------------- a <- diff(B,A)
+		P [ A || B ] Q =a=> P [ A || B ] Q'
+	EndRule
+EndOperator

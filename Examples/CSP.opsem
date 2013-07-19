@@ -1,0 +1,224 @@
+Operator CSPSTOP
+EndOperator
+
+Operator ExternalChoice(P, Q)
+	Syntax Binary "[]" 10 AssocLeft
+	
+	Rule
+		P =a=> P'
+		-------------------		a <- Sigma
+		P [] Q =a=> P'
+	EndRule
+	
+	Rule 
+		Q =a=> Q'
+		--------------			a <- Sigma
+		P [] Q =a=> Q'
+	EndRule
+	
+	Replicated(P)
+		Syntax Prefix "[] $0 @" 9
+		
+		BaseCase({})
+			CSPSTOP
+		EndBaseCase
+		InductiveCase(Ps)
+			P [] InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+Operator Prefix(a, P)
+	Syntax Binary "->" 8 AssocRight
+
+	Rule
+		-------------
+		a -> P =a=> P
+	EndRule
+EndOperator
+
+Operator InternalChoice(P, Q)
+	Syntax Binary "|~|" 10 AssocLeft
+	
+	Rule
+		----------------
+		P |~| Q =tau=> P
+	EndRule
+	
+	Rule 
+		----------------
+		P |~| Q =tau=> Q
+	EndRule
+
+	Replicated(P)
+		Syntax Prefix "\$ $0 @" 9
+		
+		BaseCase({P})
+			P
+		EndBaseCase
+		InductiveCase(Ps)
+			P |~| InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+Operator Hide(P : InfRec, A)
+	Syntax Binary "\" 14 AssocLeft
+	
+	Rule
+		P =a=> P'
+		-----------------		a <- diff(Sigma, A)
+		P \ A =a=> P' \ A
+	EndRule
+	
+	Rule
+		P =a=> P'
+		-----------------		a <- A
+		P \ A =tau=> P' \ A
+	EndRule
+EndOperator
+
+Operator Rename(P : InfRec, A)	
+	Rule
+		P =a=> P'
+		-----------------------------	(a,b) <- A
+		Rename(P,A) =b=> Rename(P',A)
+	EndRule
+	
+	Rule
+		P =a=> P'
+		-----------------------------	a <- diff(Sigma, {a | (a,b) <- A})
+		Rename(P,A) =a=> Rename(P',A)
+	EndRule
+EndOperator
+
+Operator Parallel(P : InfRec, Q : InfRec, A)
+	Syntax Binary "[| $3 |]" 12 AssocNone
+	
+	Rule
+		P =a=> P'
+		Q =a=> Q'
+		------------------------------		a <- A
+		P [| A |] Q =a=> P' [| A |] Q'
+	EndRule
+	
+	Rule
+		P =a=> P'
+		------------------------------		a <- diff(Sigma, A)
+		P [| A |] Q =a=> P' [| A |] Q
+	EndRule
+	
+	Rule
+		Q =a=> Q'
+		------------------------------		a <- diff(Sigma, A)
+		P [| A |] Q =a=> P [| A |] Q'
+	EndRule
+EndOperator
+
+Operator Interleave(P : InfRec, Q : InfRec)
+	Syntax Binary "|||" 12 AssocNone
+	
+	Rule
+		P =a=> P'
+		---------------------- a <- Sigma
+		P ||| Q =a=> P' ||| Q
+	EndRule
+	
+	Rule
+		Q =a=> Q'
+		--------------------- a <- Sigma
+		P ||| Q =a=> P ||| Q'
+	EndRule
+	
+	Replicated(P)
+		Syntax Prefix "||| $0 @" 9
+		
+		BaseCase({})
+			CSPSTOP
+		EndBaseCase
+		InductiveCase(Ps)
+			P ||| InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+Operator AlphaParallel(P : InfRec, Q : InfRec, A, B)
+	Syntax Binary "[ $3 || $4 ]" 12 AssocNone
+
+	Rule
+		P =a=> P'
+		Q =a=> Q'
+		------------------------------		a <- inter(A,B)
+		P [A || B] Q =a=> P' [A || B] Q'
+	EndRule
+	
+	Rule
+		P =a=> P'
+		------------------------------		a <- diff(A, B)
+		P [A || B] Q =a=> P' [A || B] Q
+	EndRule
+	
+	Rule
+		Q =a=> Q'
+		------------------------------		a <- diff(B, A)
+		P [A || B] Q =a=> P [A || B] Q'
+	EndRule
+	
+	Replicated(P, A)
+		Syntax Prefix "|| $0 @ [$2]" 9
+		
+		BaseCase({}, {})
+			CSPSTOP
+		EndBaseCase
+		InductiveCase(Ps, As)
+			P [A || Union(As)] InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+Operator Interrupt(P : InfRec, Q)
+	Syntax Binary "/\" 10 AssocNone
+	
+	Rule
+		P =a=> P'
+		--------------------				a <- Sigma
+		P /\ Q =a=> P' /\ Q
+	EndRule
+	
+	Rule
+		Q =a=> Q'
+		----------------					a <- Sigma
+		P /\ Q =a=> Q'
+	EndRule
+EndOperator
+
+Operator Exception(P : InfRec, Q, A)
+	Syntax Binary "[| $3 |>" 12 AssocNone
+	
+	Rule
+		P =a=> P'
+		-----------------------------		a <- diff(Sigma, A)
+		P [| A |> Q =a=> P' [| A |> Q
+	EndRule
+	
+	Rule
+		P =a=> P'
+		------------------					a <- A
+		P [| A |> Q =a=> Q
+	EndRule
+EndOperator
+
+Operator Timeout(P, Q)
+	Syntax Binary "[>" 10 AssocLeft
+	
+	Rule
+		P =a=> P'
+		--------------	a <- Sigma
+		P [> Q =a=> P'
+	EndRule
+	
+	Rule
+		---------------
+		P [> Q =tau=> Q
+	EndRule
+EndOperator
