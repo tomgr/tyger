@@ -446,6 +446,8 @@ typeCheckOperators (InputOpSemDefinition ops chans) =
 				mapM injectChannelType chans
 				ops <- concatMapM typeCheckOperator (identityRule:ops)
 				return $ OpSemDefinition ops chans
+		injectChannelType (Channel n []) =
+			setType n TEvent
 		injectChannelType (Channel n es) =
 			do
 				ts <- mapM typeCheck es

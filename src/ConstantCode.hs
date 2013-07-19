@@ -61,7 +61,8 @@ composeFunctions(fs1, fs2) = {(a, apply(fs1, b)) | (a, b) <- fs2}
 composeFunctionsSeq(fs1, fs2) = <(a,applySeq(fs1,b)) | (a,b) <- fs2>
 
 apply(f, x) = 
-	extract({a | (x', a) <- f, x == x'})
+	let extract({x}) = x
+	within extract({a | (x', a) <- f, x == x'})
 	
 applySeq(f, x) = 
 	let extract(<x>) = x

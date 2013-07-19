@@ -89,7 +89,11 @@ tygerMain opsemFile cspmFile =
 					++"|}\n\n"
 				++show (prettyPrint (head transformedModules))
 
-			liftIO $ writeFile outputOpSemFile operatorsFile
+			liftIO $ writeFile outputOpSemFile (fixQuoting operatorsFile)
 			liftIO $ writeFile outputCSPMFile cspmFile
 
 			return ()
+
+fixQuoting [] = []
+fixQuoting ('\\':'|':'\\':']':xs) = '|' : ']' : fixQuoting xs
+fixQuoting (x:xs) = x : fixQuoting xs
