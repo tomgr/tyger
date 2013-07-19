@@ -1,0 +1,46 @@
+include "CCS.csp"
+
+UserEvents = {|pickup', putdown', sitdown', eat', getup'|}
+
+datatype ProcArgs = Proc_Philosopher'.ID'| Proc_Fork'.ID'
+
+GetProc(Proc_Philosopher'.arg_1') = Philosopher_UNWRAPPED'(arg_1')
+GetProc(Proc_Fork'.arg_1') = Fork_UNWRAPPED'(arg_1')
+
+N' = 2
+
+ID' = {0..N'}
+
+channel pickup', putdown' : ID'
+
+channel sitdown', eat', getup' : ID'
+
+mplus'(x', y') = (x' + y') % N'
+
+Philosopher_UNWRAPPED'(id') =
+    Dot'(sitdown'.id',
+         Dot'(pickup'.id',
+              Dot'(pickup'.mplus'(id', 1),
+                   Dot'(eat'.id',
+                        Dot'(putdown'.mplus'(id', 1),
+                             Dot'(putdown'.id',
+                                  Dot'(getup'.id', CallProc(Proc_Philosopher'.id'))))))))
+
+Philosopher'(arg_1') = WrapThread(Proc_Philosopher'.arg_1')
+
+Fork_UNWRAPPED'(id') =
+    CoDot'(pickup'.id',
+           CoDot'(putdown'.id', CallProc(Proc_Fork'.id')))
+
+Fork'(arg_1') = WrapThread(Proc_Fork'.arg_1')
+
+Philosophers' =
+    ReplicatedParallel'(<Philosopher'(id') | id' <- seq({0..N'})>)
+
+Forks' = ReplicatedParallel'(<Fork'(id') | id' <- seq({0..N'})>)
+
+System' =
+    Restricted'(Parallel'(Philosophers', Forks'),
+                {|pickup', putdown'|})
+
+assert CCSTaus'(System') :[deadlock free [F]]

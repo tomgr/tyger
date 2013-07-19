@@ -1,0 +1,179 @@
+Channels
+	ccs_tau
+	co_event : Sigma
+EndChannels
+
+Operator NIL
+EndOperator
+
+Operator Plus(P, Q)
+	Syntax Binary "[]" 10 AssocLeft
+	
+	Rule
+		P =a=> P'
+		-------------		a <- Sigma
+		P [] Q =a=> P'
+	EndRule
+	
+	Rule 
+		Q =a=> Q'
+		--------------			a <- Sigma
+		P [] Q =a=> Q'
+	EndRule
+
+	Rule
+		P =co_event.a=> P'
+		-----------------------	a <- Sigma
+		P [] Q =co_event.a=> P'
+	EndRule
+	
+	Rule 
+		Q =co_event.a=> Q'
+		-----------------------	a <- Sigma
+		P [] Q =co_event.a=> Q'
+	EndRule
+	
+	Rule
+		P =ccs_tau=> P'
+		--------------------		a <- Sigma
+		P [] Q =ccs_tau=> P'
+	EndRule
+
+	Rule
+		Q =ccs_tau=> Q'
+		--------------------	a <- Sigma
+		P [] Q =ccs_tau=> Q'
+	EndRule
+
+	Replicated(P)
+		Syntax Prefix "[] $0 @" 9
+		
+		BaseCase({})
+			NIL
+		EndBaseCase
+		InductiveCase(Ps)
+			P [] InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+Operator Dot(a, P)
+	Syntax Binary "->" 8 AssocRight
+
+	Rule
+		-------------
+		a->P =a=> P
+	EndRule
+EndOperator
+
+Operator CoDot(a, P)
+	Syntax Binary "|->" 8 AssocRight
+
+	Rule
+		-----------------------
+		a |-> P =co_event.a=> P
+	EndRule
+EndOperator
+
+Operator Parallel(P : InfRec, Q : InfRec)
+	Syntax Binary "|" 12 AssocRight
+
+	Rule
+		P =a=> P'
+		Q =co_event.a=> Q'
+		------------------------ a <- Sigma
+		P | Q =ccs_tau=> P' | Q'
+	EndRule
+
+	Rule
+		P =a=> P'
+		----------------- a <- Sigma
+		P | Q =a=> P' | Q
+	EndRule
+
+	Rule
+		Q =a=> Q'
+		------------------ a <- Sigma
+		P | Q =a=> P | Q'
+	EndRule
+
+	Rule
+		P =co_event.a=> P'
+		------------------------ a <- Sigma
+		P | Q =co_event.a=> P' | Q
+	EndRule
+
+	Rule
+		Q =co_event.a=> Q'
+		------------------------ a <- Sigma
+		P | Q =co_event.a=> P | Q'
+	EndRule
+
+	Rule
+		P =ccs_tau=> P'
+		----------------------- a <- Sigma
+		P | Q =ccs_tau=> P' | Q
+	EndRule
+
+	Rule
+		Q =ccs_tau=> Q'
+		---------------------- a <- Sigma
+		P | Q =ccs_tau=> P | Q'
+	EndRule
+
+	Replicated(P)
+		Syntax Prefix "| $0 @" 9
+
+		BaseCase({})
+			NIL
+		EndBaseCase
+		InductiveCase(Ps)
+			P | InductiveCase
+		EndInductiveCase
+	EndReplicated
+EndOperator
+
+Operator Restricted(P : InfRec, A)
+	Syntax Binary "\" 14 AssocLeft
+
+	Rule
+		P =a=> P'
+		----------------- a <- Sigma, !member(a, A)
+		P \ A =a=> P' \ A
+	EndRule
+
+	Rule
+		P =co_event.a=> P'
+		-------------------------- a <- Sigma, !member(a, A)
+		P \ A =co_event.a=> P' \ A
+	EndRule
+
+	Rule
+		P =ccs_tau=> P'
+		-----------------------
+		P \ A =ccs_tau=> P' \ A
+	EndRule
+
+EndOperator
+
+Operator CCSTaus(P : InfRec)
+
+	Rule
+		P =a=> P'
+		--------------------------- a <- Sigma
+		CCSTaus(P) =a=> CCSTaus(P')
+	EndRule
+
+	Rule
+		P =co_event.a=> P'
+		------------------------------------ a <- Sigma
+		CCSTaus(P) =co_event.a=> CCSTaus(P')
+	EndRule
+
+	Rule
+		P =ccs_tau=> P'
+		----------------------------- a <- Sigma
+		CCSTaus(P) =tau=> CCSTaus(P')
+	EndRule
+
+EndOperator
